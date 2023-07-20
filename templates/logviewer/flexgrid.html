@@ -1,0 +1,261 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Rsyslog collector</title>
+<!-- Jquery -->
+<script type="text/javascript" src="{{ MEDIA_URL }}js/jquery/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}js/jquery/jquery-ui-1.8.21.custom.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/jquery/overcast/jquery-ui-1.8.21.custom.css" />
+<!-- Flexgrid -->
+<script type="text/javascript" src="{{ MEDIA_URL }}js/flexigrid/flexigrid.pack.js"></script>
+<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/flexigrid/flexigrid.pack.css" />
+
+
+<!-- Rsyslog Mysql Web -->
+<script type="text/javascript" src="{{ MEDIA_URL }}js/common.js"></script>
+<link rel="stylesheet" type="text/css" href="{{ MEDIA_URL }}css/style.css" />
+</head>
+<body>
+<script type="text/javascript">
+              
+    var sitelink = "{{SITE_URL}}";
+    
+    var width = 1470;
+    var height = 520;
+    
+    var chartwidth = 900;
+    var chartheight = 420;
+          
+    $(function() {
+    
+        // Button Definitions
+ 
+        $( "#submit" ).button();
+        $( "#clear" ).button();
+        $( "#clear_devicereportedtime_start" ).button();
+        $( "#operator" ).buttonset();
+        $( "#export" ).button();
+        
+        
+        // Set Time
+        setTimeOnElem('refresh_time');
+        
+		
+		// Create Flexigrid
+        $("#rsyslog").flexigrid({
+                url: sitelink + 'ajax',
+                method: 'GET',
+                dataType: 'json',
+                colModel : [
+                        {display: 'ID', name : 'id', width : 40, sortable : true, align: 'left'},
+                        {display: 'Date', name : 'devicereportedtime', width : 130, sortable : true, align: 'left'},
+                        {display: 'Age (D,H,M)', name : 'age', width : 70, sortable : false, align: 'center'},
+                        {display: 'Facility', name : 'facility', width : 120, sortable : true, align: 'left'},
+                        {display: 'Priority', name : 'priority', width : 70, sortable : true, align: 'left'},
+                        {display: 'Fromhost', name : 'fromhost', width : 150, sortable : true, align: 'left'},
+                        {display: 'Syslogtag', name : 'syslogtag', width : 150, sortable : true, align: 'left'},
+                        {display: 'Message', name : 'message', width : 640, sortable : true, align: 'left'},
+                        {display: 'Messagefull', name : 'messagefull', width : 250, sortable : true, align: 'left',hide: true}
+                ],
+                sortname: "id",
+                sortorder: "desc",
+                usepager: true,
+                useRp: true,
+                rp: 20,
+                showTableToggleBtn: false,
+                resizable: false,
+                width: width,
+                height: height,
+                singleSelect: true,
+                onSubmit : function(){ 
+                                        $('#rsyslog').flexOptions({params: [{name:'callId', value:'rsyslog'}].concat($('#fmFilter').serializeArray())});
+                                        return true;
+                                    },
+                onSuccess: gridFormat 
+        });
+        
+        // Set the Text for the Event Detail
+        $('#rsyslog').click(function(event){
+            $('.trSelected', this).each( function(){
+            
+                    var devicereportedtime = $('td[abbr="devicereportedtime"] >div', this).html()
+                    var facility = $('td[abbr="facility"] >div', this).html()
+                    var priority = $('td[abbr="priority"] >div', this).html()
+                    var fromhost = $('td[abbr="fromhost"] >div', this).html()
+                    var syslogtag = $('td[abbr="syslogtag"] >div', this).html()
+                    var messagefull = $('td[abbr="messagefull"] >div', this).html()
+                    
+                    setDetailText(messagefull, fromhost, devicereportedtime, priority, syslogtag, facility);
+                    
+                    // Select the Event Detail Tab
+                    $( "#tabs" ).tabs('select', 1);
+                });
+        });
+        
+        // Jquery UI Tabs for Query and Event Detail
+        $( "#tabs" ).tabs();
+        
+        // Jquery UI Datepickers
+        $( "#devicereportedtime_start" ).datepicker({ dateFormat: "yy-mm-dd"});
+        $( "#devicereportedtime_end" ).datepicker({ dateFormat: "yy-mm-dd"});
+
+    }); 
+    
+    // Format the Priority Column
+    function gridFormat() {
+        var lblPriority = { 
+                'Emergency' : { 
+                        css: 'priority-emergency'
+                },
+                'Alert' : { 
+                        css: 'priority-alert'
+                },
+                'Critical' : { 
+                        css: 'priority-critical'
+                },
+                'Error' : { 
+                        css: 'priority-error'
+                },
+                'Warning' : { 
+                        css: 'priority-warning'
+                },
+                'Notice' : { 
+                        css: 'priority-notice'
+                },
+                'Informational' : { 
+                        css: 'priority-informational'
+                },
+                'Debug' : { 
+                        css: 'priority-debug'
+                }
+                
+        }; 
+        $('#rsyslog tr').each( function(){
+                if (this.id != '')
+                {
+                var cell = $('td[abbr="priority"] >div', this);
+       
+                cell.addClass( lblPriority[cell.text()].css );
+                }
+        });
+        return true;
+    }
+    
+    // Reload Flexigrid
+    function reload() {
+         $('#rsyslog').flexReload();
+    }
+    
+    // Open Chart Dialog
+    var openMyDialog = function() {
+        $("#dialog-modal").dialog('open')
+        document.getElementById('chartcolumn').value = ""; 
+        document.getElementById('charttype').value = "line";
+        document.getElementById('chartwidth').value = chartwidth; 
+        document.getElementById('chartheight').value = chartheight;
+        
+        $('#rsyslog_chart_placeholder').html('');
+    }
+
+</script>
+
+<h1>Rsyslog Collector - Made with love for EY</h1>
+
+    
+</div>
+<div id="outer">
+    <div id="rsyslog" ></div>
+</div>
+<div id="tabs" style="width: 1460px;">
+	<ul>
+	    <li><a href="#tabs-1">Query Builder</a></li>
+		<li><a href="#tabs-2">Event Detail</a></li>
+	</ul>
+	<div id="tabs-1">
+		<div class="detailbox">
+        <form action="" id="fmFilter" onsubmit="return formsubmit();">
+          <table cellpadding="0" cellspacing="0" class="tableform">
+          <tr>
+          <th colspan="3" rowspan="2" class="tableformheader">Query Builder</th>
+          <th>Start Date:</th>
+          <td><input type="text" name="devicereportedtime_start" size="20" id="devicereportedtime_start" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('devicereportedtime_start')">Clear</span></td>
+          <th>End Date:</th>
+          <td><input type="text" name="devicereportedtime_end" size="20" id="devicereportedtime_end" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('devicereportedtime_end')">Clear</span></td>
+          <th>Facility:</th>
+          <td><input type="text" name="facility" size="20" id="facility" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('facility')">Clear</span></td>
+          
+
+         <th rowspan="2">Message:</th>
+          <td rowspan="2"><textarea name="message" id="message" cols="50" rows="2"></textarea></td>
+          <td rowspan="2"><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('message')">Clear</span></td> 
+          </tr>
+          <tr>
+          <th>Host:</th>
+          <td><input type="text" name="fromhost" size="20" id="fromhost" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('fromhost')">Clear</span></td>
+          <th>Priority:</th>
+          <td><input type="text" name="priority" size="20" id="priority" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('priority')">Clear</span></td>
+          <th>Tag:</th>
+          <td><input type="text" name="syslogtag" size="20" id="syslogtag" /></td>
+          <td><span class="ui-icon ui-icon-arrowthickstop-1-w" onclick="clear_input('syslogtag')">Clear</span></td>
+         
+          </tr>
+          <tr>
+        
+          <td colspan="13" align="right">
+              <table>
+              <tr>
+              <th class="tablebox">          
+                  <div id="operator">
+                  SQL Operator:
+                  <input type="radio" id="operator1" name="operator" value="and" /><label for="operator1">And</label>
+		          <input type="radio" id="operator2" name="operator" checked="checked" value="or"/><label for="operator2">Or</label>
+		          </div>
+              </th>
+              <td><input type="submit" name="submit" id="submit" value="Submit" /></td>
+              <td><input type="button" name="clear" id="clear" value="Clear Form" onclick="clear_form()" /></td>
+              <td><input type="button" name="export" id="export" value="Export" onclick="export_to_spreadsheet('csv')" /></td>
+              <th class="tablebox">Refresh:
+                <select id="refresh" onchange="setTimer(this.value)">
+                <option value="">Off</option>
+                <option value="10000">10 sec</option>
+                <option value="20000">20 sec</option>
+                <option value="30000">30 sec</option>
+                <option value="45000">45 sec</option>
+                <option value="60000">1 min</option>
+                <option value="90000">1 1/2 min</option>
+                <option value="120000">2 min</option>
+                <option value="300000">5 min</option>
+              </select>
+              Time: (<i id="refresh_time"></i>) </th>          
+              </tr>
+              </table>
+          </td>
+          </tr>
+          </table>
+        </form>
+        </div>
+	</div>
+	<div id="tabs-2">
+		<div class="detailbox">
+        <p>
+        <i id="date_detail">&nbsp;</i><br />
+        <div id="facility_detail">&nbsp;</div>
+        <div id="host_detail">&nbsp;</div>
+        <div id="priority_detail">&nbsp;</div>
+        </p>
+        <p id="tag_detail">&nbsp;</p>
+        <div class="messagedetail" id="message_detail">Select a Row to See the Detail.</div>
+        </div>
+	</div>
+</div>
+<div class="footer">A project by Kalpesh & Avinash</div>
+</body>
+</html>
+
